@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Owner dashboard — Braintech Orbit</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #0d0f22; --surface: #171a35; --surface-2: #1f2342;
+    --border: rgba(232,234,255,0.09); --text: #eceefb; --muted: #9aa0c7; --amber: #e8b04b;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background: var(--bg); color: var(--text); font-family:'Inter',sans-serif;
+    min-height:100vh;
+  }
+  header{ display:flex; align-items:center; justify-content:space-between; padding:20px clamp(20px,5vw,56px); border-bottom:1px solid var(--border); }
+  h1{ font-family:'Space Grotesk',sans-serif; font-size:19px; margin:0; }
+  a.back{ color:var(--muted); text-decoration:none; font-size:13px; }
+  a.back:hover{ color:var(--text); }
+  main{ max-width:900px; margin:0 auto; padding:32px clamp(16px,4vw,40px); }
+  table{ width:100%; border-collapse:collapse; background:var(--surface); border:1px solid var(--border); border-radius:12px; overflow:hidden; }
+  th, td{ text-align:left; padding:12px 14px; font-size:13.5px; border-bottom:1px solid var(--border); }
+  th{ color:var(--muted); font-weight:600; background:var(--surface-2); }
+  tr:last-child td{ border-bottom:none; }
+  .pic{ width:24px; height:24px; border-radius:50%; vertical-align:middle; margin-right:8px; }
+  #status{ color:var(--muted); font-size:13.5px; }
+  .locked{ text-align:center; padding:60px 20px; color:var(--muted); }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Owner dashboard</h1>
+  <a class="back" href="/">&larr; Back to site</a>
+</header>
+
+<main>
+  <div id="status">Loading…</div>
+  <table id="users-table" style="display:none;">
+    <thead>
+      <tr><th>Account</th><th>Email</th><th>First signed up</th><th>Last login</th></tr>
+    </thead>
+    <tbody id="users-body"></tbody>
+  </table>
+</main>
+
+<script>
+async function loadUsers(){
+  const status = document.getElementById('status');
+  const table = document.getElementById('users-table');
+  const body = document.getElementById('users-body');
+
+  try{
+    const res = await fetch('/api/admin/users', { credentials: 'include' });
+    if(res.status === 401 || res.status === 403){
+      status.innerHTML = '<div class="locked">Not logged in as the owner. <a href="/" style="color:var(--amber);">Go log in</a>.</div>';
+      return;
+    }
+    if(!res.ok) throw new Error('Failed to load');
+
+    const data = await res.json();
+    if(!data.users.length){
+      status.textContent = 'No one has signed up yet.';
+      return;
+    }
+
+    status.style.display = 'none';
+    table.style.display = 'table';
+    body.innerHTML = data.users.map(u => `
+      <tr>
+        <td>${u.picture ? `<img class="pic" src="${u.picture}">` : ''}${u.name || ''}</td>
+        <td>${u.email}</td>
+        <td>${new Date(u.createdAt).toLocaleString()}</td>
+        <td>${new Date(u.lastLoginAt).toLocaleString()}</td>
+      </tr>
+    `).join('');
+  }catch(err){
+    status.textContent = 'Something went wrong loading the user list.';
+    console.error(err);
+  }
+}
+loadUsers();
+</script>
+
+</body>
+</html>
